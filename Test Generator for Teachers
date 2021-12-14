@@ -1,0 +1,94 @@
+import re
+import numpy as np
+
+examName = str(input("What is the name of the file?"))
+exam = open(examName,"r") 
+exam_lines = exam.readlines()
+
+def break_into_Qs(lines):
+    """ Breaks text into questions seperated by new line
+        Returns array of 
+    
+        Returns: List of Strings
+    """
+    questions = []
+    line_numbers = []
+    c = 0
+    for l in lines:
+        question_numbers_found = re.findall("\d+\. ", l)
+        if len(question_numbers_found)>0:
+            first_one = question_numbers_found[0]
+            if first_one == l[0:len(first_one)]:
+                questions.append(l)
+                line_numbers.append(c)
+        c = c + 1
+    
+    return questions, line_numbers
+    
+  def replace_Q_numbers(question,margin):
+  """ Replaces the numbers 
+
+      Returns: String
+  """
+  question_numbers_found = re.findall("\d+\. ", question)
+  first_one = question_numbers_found[0]
+  question = question[len(first_one):len(question)]
+
+  numbers_as_strings = re.findall("(?<![A-Za-z])(\d+[.]\d+)+|(?<![A-Za-z])(\d+)", question)
+  if (len(numbers_as_strings)>0):
+      numbers_as_strings = list(sum(numbers_as_strings, ()))
+      numbers_as_strings = [num for num in numbers_as_strings if num !='']
+      num_dec_places = [len(num[(num.index(".")+1):len(num)]) if "." in num else 0 for num in numbers_as_strings]
+      numbers_as_floats = [float(num) for num in numbers_as_strings]
+      new_numbers = [np.random.uniform(low=num*(1-margin), high=num*(1+margin)) for num in numbers_as_floats]
+      for i in range(len(new_numbers)):
+          if num_dec_places[i] !=0:
+              new_numbers[i] = round(new_numbers[i],num_dec_places[i])
+          else:
+              new_numbers[i] = int(round(new_numbers[i]))
+      new_numbers_as_strings = [str(num) for num in new_numbers]
+
+      # replace numbers in question string
+      for i in range(len(new_numbers_as_strings)):
+          new_num = new_numbers_as_strings[i]
+          old_num = numbers_as_strings[i]
+          question = question.replace(old_num, new_num, 1)
+
+  return first_one + question
+    
+    
+def randomize_exam_Qs(questions,margin=0.1):
+    """
+    Returns: List
+    """
+    new_questions = []
+    for q in questions:
+        new_q = replace_Q_numbers(q,margin)
+        new_questions.append(new_q)
+    
+    return new_questions
+
+def replace_exam_Qs(questions,line_numbers,lines):
+    """
+    Returns: List of Strings
+    """
+    i = 0
+    for c in range(len(lines)):
+        if c in line_numbers:
+            lines[c] = questions[i]
+            i = i + 1
+    
+    return lines
+    
+questions, line_nums = break_into_Qs(exam_lines)
+
+margins = .2
+n_exams = int(input("How many randomized exams do you want to create?"))
+exams = []
+for i in range(n_exams):
+    new_questions = randomize_exam_Qs(questions,margins)
+    new_exam = replace_exam_Qs(new_questions,line_nums,exam_lines)
+    exams.append(new_exam)
+    
+    with open("exam" + str(i) + ".txt", "w") as outfile:
+        outfile.write("".join(new_exam))
